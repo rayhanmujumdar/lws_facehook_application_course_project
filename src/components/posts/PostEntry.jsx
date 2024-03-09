@@ -1,40 +1,80 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { actions } from '../../actions';
 import AddPhotoIcon from '../../assets/icons/addPhoto.svg';
+import CloseIcon from '../../assets/icons/close.svg';
 import { useAxios } from '../../hooks/useAxios';
 import { usePosts } from '../../hooks/usePosts';
 import { useSyncUser } from '../../hooks/useSyncUser';
 import Field from '../common/Field';
 export default function PostEntry() {
     const FormValue = new FormData();
+    const navigate = useNavigate();
     const [beforeUploadImage, setBeforeUploadImage] = useState('');
+    const [editPost, setEditPost] = useState({});
     const user = useSyncUser();
-    const [content, setContent] = useState('');
     const { api } = useAxios();
     const { state, dispatch } = usePosts();
+    //TODO: Edit mode
+    const { postId } = useParams();
+    const location = useLocation();
+    const editMode = location?.pathname === `/edit/${postId}`;
+    useEffect(() => {
+        const fetchSinglePost = async () => {
+            if (editMode) {
+                const response = await api.get(`/posts/${postId}`);
+                if (response.status === 200) {
+                    setEditPost(response.data);
+                    setBeforeUploadImage(
+                        `${import.meta.env.VITE_BASE_URL}/${
+                            response.data?.image
+                        }`
+                    );
+                }
+            }
+        };
+        fetchSinglePost();
+    }, [editMode]);
+    // Form Handler
     const {
         handleSubmit,
         register,
         formState: { errors },
         setValue,
-    } = useForm();
-    const handleAddPost = async formData => {
+    } = useForm({
+        values: {
+            content: editMode ? editPost?.content : '',
+        },
+    });
+    const handleAddEditPost = async formData => {
         FormValue.append('content', formData.content);
         if (formData?.image) {
             FormValue.append('image', formData.image);
         }
         dispatch({ type: actions.post.DATA_FETCHING });
         try {
-            const response = await api.post('/posts', FormValue);
-            if (response?.status === 200) {
-                dispatch({
-                    type: actions.post.POST_CREATED,
-                    data: response.data,
-                });
+            if (editMode) {
+                console.log(FormValue.get('image'));
+                const response = await api.patch(`/posts/${postId}`, FormValue);
+                if (response?.status === 200) {
+                    dispatch({
+                        type: actions.post.POST_EDITED,
+                        postId,
+                        data: response.data,
+                    });
+                    navigate('/me');
+                }
+            } else {
+                const response = await api.post('/posts', FormValue);
+                if (response?.status === 200) {
+                    dispatch({
+                        type: actions.post.POST_CREATED,
+                        data: response.data,
+                    });
+                }
             }
         } catch (err) {
-            console.log(err);
             dispatch({
                 type: actions.post.DATA_ERROR,
                 error: err.message,
@@ -58,10 +98,10 @@ export default function PostEntry() {
     return (
         <div className="card relative">
             <h6 className="mb-3 text-center text-lg font-bold lg:text-xl">
-                Create Post
+                {editMode ? 'Edit Post' : 'Create Post'}
             </h6>
 
-            <form onSubmit={handleSubmit(handleAddPost)}>
+            <form onSubmit={handleSubmit(handleAddEditPost)}>
                 <div className="mb-3 flex items-center justify-between gap-2 lg:mb-6 lg:gap-4">
                     <div className="flex items-center gap-3">
                         <img
@@ -107,14 +147,20 @@ export default function PostEntry() {
                     />
                 </Field>
                 {beforeUploadImage && (
-                    <div className="flex justify-center items-center p-3 border relative">
-                        <button
-                            onClick={handleCancelUploadImage}
-                            className="absolute text-xl border border-white px-2 top-3 right-3"
-                        >
-                            X
-                        </button>
-                        <img src={beforeUploadImage} alt="" className="w-56" />
+                    <div className="mx-auto mb-4 flex max-w-[90%] items-center justify-center lg:mb-6">
+                        <div className="relative">
+                            <img
+                                className="max-w-full"
+                                src={beforeUploadImage}
+                                alt="image"
+                            />
+                            <button
+                                onClick={handleCancelUploadImage}
+                                className="absolute right-2 top-2 transition-all hover:opacity-80 active:scale-95 active:opacity-70"
+                            >
+                                <img src={CloseIcon} alt="close" />
+                            </button>
+                        </div>
                     </div>
                 )}
                 <div className="border-t border-[#3F3F3F] pt-4 lg:pt-6">
@@ -122,7 +168,7 @@ export default function PostEntry() {
                         className="auth-input bg-lwsGreen font-bold text-deepDark transition-all hover:opacity-90"
                         type="submit"
                     >
-                        Post
+                        {editMode ? 'Edit' : 'Post'}
                     </button>
                 </div>
             </form>

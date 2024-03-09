@@ -34,6 +34,26 @@ export function postReducer(state, action) {
                 posts: [...state.posts, action.data],
             };
         }
+        case actions.post.POST_DELETED: {
+            return {
+                ...state,
+                loading: false,
+                posts: state?.posts?.filter(post => post.id !== action.postId),
+            };
+        }
+        case actions.post.POST_EDITED: {
+            return {
+                ...state,
+                loading: false,
+                posts: state?.posts?.map(post => {
+                    if (post.id === action.postId) {
+                        return action.data;
+                    } else {
+                        return post;
+                    }
+                }),
+            };
+        }
 
         default: {
             return state;

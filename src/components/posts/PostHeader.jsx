@@ -1,10 +1,14 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { actions } from '../../actions/index';
 import ThreeDotIcons from '../../assets/icons/3dots.svg';
 import DeleteIcons from '../../assets/icons/delete.svg';
 import EditIcons from '../../assets/icons/edit.svg';
 import TimeIcon from '../../assets/icons/time.svg';
 import { useAuth } from '../../hooks/useAuth';
 import useAvatar from '../../hooks/useAvatar';
+import { useAxios } from '../../hooks/useAxios';
+import { usePosts } from '../../hooks/usePosts';
 import { getTimeDifferentFromNow } from '../../utils/getTimeDifferentFromNow';
 
 export default function PostHeader({ post }) {
@@ -12,6 +16,26 @@ export default function PostHeader({ post }) {
     const { auth } = useAuth();
     const isMe = auth?.user?.id === post?.author?.id;
     const [threeDotToggle, setThreeDotToggle] = useState(false);
+    const { state, dispatch } = usePosts();
+    const { api } = useAxios();
+    const handleDeletePost = async postId => {
+        try {
+            if (confirm('Are Your Delete This Post')) {
+                const response = await api.delete(`/posts/${postId}`);
+                if (response.status === 200) {
+                    dispatch({
+                        type: actions.post.POST_DELETED,
+                        postId,
+                    });
+                }
+            }
+        } catch (err) {
+            dispatch({
+                type: actions.post.DATA_ERROR,
+                error: err.message,
+            });
+        }
+    };
     return (
         <header className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -37,11 +61,17 @@ export default function PostHeader({ post }) {
                     </button>
                     {threeDotToggle && (
                         <div className="action-modal-container">
-                            <button className="action-menu-item hover:text-lwsGreen">
+                            <Link
+                                to={`/edit/${post?.id}`}
+                                className="action-menu-item hover:text-lwsGreen"
+                            >
                                 <img src={EditIcons} alt="Edit" />
                                 Edit
-                            </button>
-                            <button className="action-menu-item hover:text-red-500">
+                            </Link>
+                            <button
+                                onClick={() => handleDeletePost(post?.id)}
+                                className="action-menu-item hover:text-red-500"
+                            >
                                 <img src={DeleteIcons} alt="Delete" />
                                 Delete
                             </button>

@@ -1,4 +1,5 @@
 import { Route, Routes } from 'react-router-dom';
+import PostEntry from './components/posts/PostEntry';
 import Home from './pages/Home';
 import LoginPage from './pages/LoginPage';
 import NotFound from './pages/NotFound';
@@ -13,6 +14,7 @@ function App() {
                 <Route element={<PrivateRoutes />}>
                     <Route path="/" element={<Home />} exact />
                     <Route path="/me" element={<Profile />} />
+                    <Route path="/edit/:postId" element={<PostEntry />} />
                 </Route>
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<Register />} />
