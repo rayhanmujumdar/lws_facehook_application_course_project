@@ -55,8 +55,13 @@ export default function PostEntry() {
         dispatch({ type: actions.post.DATA_FETCHING });
         try {
             if (editMode) {
-                console.log(FormValue.get('image'));
-                const response = await api.patch(`/posts/${postId}`, FormValue);
+                const sendEditPostRequestData = formData.image
+                    ? FormValue
+                    : { image: editPost?.image, content: formData?.content };
+                const response = await api.patch(
+                    `/posts/${postId}`,
+                    sendEditPostRequestData
+                );
                 if (response?.status === 200) {
                     dispatch({
                         type: actions.post.POST_EDITED,
